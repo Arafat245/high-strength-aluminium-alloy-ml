@@ -1,0 +1,11 @@
+# Copyrighted / non-redistributable content: NEVER publish
+paper/
+Dataset/
+data/*.xlsx
+data/bhat2023_al_data.csv
+
+# Internal / derived / binary (reproducible from scripts)
+.claude/
+models.pkl
+__pycache__/
+*.pyc
