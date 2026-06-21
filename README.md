@@ -2,34 +2,38 @@
 
 An end-to-end, reproducible machine-learning pipeline that learns how composition **and
 heat-treatment** control the strength of wrought aluminium alloys, then **inverse-designs new
-7xxx (Al-Zn-Mg-Cu) compositions** predicted to exceed 7075-T6 — using only **cheap, common
-foundry elements** (no Sc, Zr, Ti or other rare/expensive additions).
+7xxx (Al-Zn-Mg-Cu) compositions** predicted to match or beat 7075/7055 — using only **cheap,
+common foundry elements** (no Sc, Zr, Ti or other rare/expensive additions).
 
-The output is a short list of candidate alloys (composition + ageing schedule) intended to be
-screened in **Thermo-Calc (CALPHAD)** and then **cast and mechanically tested**, with the
-measured results fed back to retrain the model (active learning).
+The output is a short list of candidate alloys (composition + ageing schedule) to be screened in
+**Thermo-Calc (CALPHAD)** and then **cast and mechanically tested**, with measured results fed
+back to retrain the model (active learning).
 
 ---
 
 ## 🔬 Headline result — 5 candidates using only Zn, Mg, Cu, Mn, Cr
 
-Predicted with an XGBoost ensemble; **predictions carry a realistic ±70 MPa band** (see
-[Performance](#4-performance--how-we-tested-it)). All are predicted above 7075-T6 (≈572 MPa).
+Selected from a **4-dataset pooled model** (1124 alloys), restricted to **in-distribution**
+chemistries so the predictions are trustworthy (model 7xxx UTS R² = 0.73, honest error ±43 MPa).
+All beat 7075-T6 (≈572 MPa). Machine-readable: [`data/candidates_final.csv`](data/candidates_final.csv).
 
-| # | Zn | Mg | Cu | Mn | Cr | Heat treatment | Pred. UTS | Pred. YTS | EL % | Novelty | Character |
-|---|----|----|----|----|----|----------------|:---------:|:---------:|:----:|:-------:|-----------|
-| 1 | 7.3 | 2.6 | 2.1 | 0.01 | 0.16 | SHT 460 °C → water quench → age 106 °C / 25 h | **635** | 576 | 13 | 1.7 | Optimised 7050/7150-type — **highest confidence** |
-| 2 | 7.3 | 1.2 | 2.5 | 0.40 | 0.28 | SHT 463 °C → WQ → age 103 °C / 25 h | **616** | 552 | 15 | 3.7 | High Mn+Cr dispersoids, Cu-rich |
-| 3 | 9.4 | 1.8 | 0.5 | 0.01 | 0.13 | SHT 463 °C → WQ → age 108 °C / 25 h | **614** | 543 | 15 | 3.2 | High-Zn **lean-Cu** (better weldability / SCC) |
-| 4 | 8.9 | 2.6 | 0.4 | 0.37 | 0.10 | SHT 467 °C → WQ → age 114 °C / 24 h | **596** | 552 | 14 | 2.8 | High Zn+Mg, low Cu |
-| 5 | 5.7 | 2.6 | 2.6 | 0.03 | 0.12 | SHT 460 °C → WQ → age 120 °C / 24 h | **590** | 546 | **20** | 1.7 | Leaner Zn — **excellent strength + ductility** |
+| # | Al | Zn | Mg | Cu | Mn | Cr | Heat treatment | UTS | YS | EL % | Novelty | Character |
+|---|----|----|----|----|----|----|----------------|:---:|:--:|:----:|:-------:|-----------|
+| 1 | 87.6 | 7.5 | 2.6 | 1.5 | 0.34 | 0.17 | SHT 488 °C → WQ → age 104 °C / 24 h | **635** | 555 | 11 | 1.13 | Balanced 7050-type — highest confidence |
+| 2 | 87.8 | 8.0 | 2.7 | 0.9 | 0.28 | 0.08 | SHT 483 °C → WQ → age 106 °C / 25 h | **640** | **589** | 11 | 1.24 | High-Zn **lean-Cu** — best YS, better weld/SCC |
+| 3 | 87.3 | 7.1 | 2.6 | 2.3 | 0.40 | 0.17 | SHT 464 °C → WQ → age 100 °C / 35 h | **639** | 566 | 11 | 1.11 | Cu-rich 7075-type |
+| 4 | 87.9 | 8.1 | 2.1 | 1.6 | 0.01 | 0.09 | SHT 485 °C → WQ → age 107 °C / 23 h | **632** | 553 | **16** | 1.30 | **High ductility** + high strength |
+| 5 | 87.9 | 6.5 | 2.5 | 2.2 | 0.39 | 0.15 | SHT 486 °C → WQ → age 110 °C / 34 h | **619** | 528 | 11 | 1.14 | Leaner Zn, Cu-rich |
 
-*Units: wt %; strength in MPa. SHT = solution heat treatment. Full machine-readable output:
-[`data/candidates_cheap.csv`](data/candidates_cheap.csv).*
+*Units: wt %; strength in MPa. SHT = solution heat treatment; WQ = water quench. Fe ≤ 0.15,
+Si ≤ 0.10 are fixed low impurities. **Novelty ≈ 1.1–1.3** = these interpolate within real data
+(threshold 1.32), so the model is reliable here — they are tuned members of the 7075/7050/7150
+family, not extrapolations.*
 
-> A version that **allows** Sc/Zr/Ti reaches ≈660 MPa (+25 MPa) — see
-> [`data/candidates.csv`](data/candidates.csv) and [Appendix](#appendix--rare-element-variant).
-> The 25 MPa premium was judged not worth the rare-metal cost/availability.
+> **Honest framing:** treat predictions as **±43 MPa** (the model's grouped-CV error on unseen
+> 7xxx), and note the model is blind to grain size / multi-stage ageing. These are the model's
+> best *trustworthy* cheap picks — strong, castable hypotheses for Thermo-Calc, not validated
+> optima. See [Limitations](#7-limitations-read-before-casting).
 
 ---
 
@@ -37,22 +41,18 @@ Predicted with an XGBoost ensemble; **predictions carry a realistic ±70 MPa ban
 
 ```mermaid
 flowchart TD
-    A["Public datasets<br/>Hu 2024 (primary) + Bhat 2023 + 3 augmentation sets"] --> B["Clean &amp; load<br/>1150 wrought Al alloys, identify 153 7xxx by chemistry"]
-    B --> C["Feature engineering (65 features)<br/>18 element wt% · 3 numeric heat-treatment<br/>3 physics descriptors (VEC, δ, χ) · one-hot processing"]
-    C --> D["Forward model<br/>XGBoost bootstrap ensemble (12×)<br/>for UTS, YTS, EL → mean + uncertainty"]
+    A["4 public datasets pooled + de-duplicated<br/>Hu 2024 · CSTG-1293 · 2× haoyun → 1124 alloys (264 are 7xxx)"] --> C["Feature engineering<br/>20 element wt% · 3 numeric heat-treatment (Tsol/Tage/tage)<br/>3 physics descriptors (VEC, δ, χ)"]
+    C --> D["Forward model<br/>XGBoost bootstrap ensemble (12×) for UTS, YS, EL<br/>→ mean + uncertainty"]
 
-    D --> E{"Validation"}
-    E -->|"random 5-fold (leaky)"| E1["UTS R²=0.96 — optimistic"]
-    E -->|"grouped 5-fold by alloy<br/>(unseen alloys = real test)"| E2["UTS R²=0.76, MAE 58 MPa<br/>7xxx MAE ≈ 70 MPa"]
+    D --> E{"Validation (grouped CV by chemistry)"}
+    E -->|"all alloys"| E1["UTS R²=0.84 · YS R²=0.77"]
+    E -->|"7xxx subset"| E2["UTS R²=0.73, MAE 43 MPa<br/>YS R²=0.73, MAE 50 MPa"]
 
-    D --> F["Inverse design<br/>NSGA-II (pop 150, 80 gens)"]
-    F --> F1["Objective 1: maximise UTS"]
-    F --> F2["Objective 2: maximise novelty"]
-    F --> F3["Objective 3: minimise uncertainty"]
-    F1 & F2 & F3 --> G["Constraints<br/>cheap elements only · Zn+Mg+Cu ≤ 12"]
-    G --> H["Pareto front (150 solutions)"]
-    H --> I["Diversify: KMeans k=5<br/>+ confidence-penalised score"]
-    I --> J["★ 5 candidate alloys<br/>composition + ageing schedule"]
+    D --> F["Inverse design<br/>virtual screen 150k cheap-element 7xxx samples"]
+    F --> G["Filters: in-distribution (novelty ≤ 1.32)<br/>· Zn+Mg+Cu ≤ 12 · EL ≥ 8%"]
+    G --> H["Rank by confidence-penalised strength<br/>score = UTS − 1·σ"]
+    H --> I["Diversity filter (≥0.5 wt% apart)"]
+    I --> J["★ 5 candidate alloys + ageing schedule"]
 
     J --> K["Thermo-Calc / CALPHAD<br/>solvus · Scheil castability · phase fractions"]
     K --> L["Cast &amp; tensile-test 2–3 best"]
@@ -63,104 +63,85 @@ flowchart TD
 
 ## 1. Data
 
-| File | Source | Rows | Why used |
-|------|--------|-----:|----------|
-| `data/hu2024_dataset.xlsx` | Hu et al. 2024, *Comput. Mater. Sci.* 244:113204 ([GitHub](https://github.com/UQ43815685/mitigating_data_bias_for_Al_alloys_design)) | 1150 | **Primary** — has *numeric* solution/ageing temperature & time (feeds CALPHAD) |
-| `data/bhat2023_al_data.csv` | Bhat, Barnard & Birbilis 2023 ([Mendeley, DOI 10.17632/b6br4yk6r3.1](https://doi.org/10.17632/b6br4yk6r3.1), CC-BY-4.0) | 1154 | Clean-licence corroborator |
-| `data/cstg_origin1293.xlsx`, `data/haoyun_*.xlsx` | GitHub age-hardenable Al compilations | 1292 / 524 / 320 | Augmentation (next iteration) |
+Four public datasets — each linking **composition → numeric heat-treatment → mechanical
+properties** — pooled and de-duplicated into **1124 alloys** (264 are 7xxx).
 
-Each row links **composition → processing/heat-treatment → mechanical properties (YTS, UTS,
-elongation)**. The model was trained on all 1150 wrought alloys; **7xxx alloys (153)** were
-identified by chemistry (Zn ≥ 3 wt % and Zn the dominant alloying element) and used as the
-inverse-design target region. Full provenance & licences: [`data/DATA_SOURCES.md`](data/DATA_SOURCES.md).
+| File | Source | Rows | Role |
+|------|--------|-----:|------|
+| `data/hu2024_dataset.xlsx` | Hu et al. 2024, *Comput. Mater. Sci.* 244:113204 | 1150 | Primary (numeric solution/ageing T & time) |
+| `data/cstg_origin1293.xlsx` | GitHub `CSTG-bug/TheFinal` | 1292 | Age-hardenable augmentation |
+| `data/haoyun_*.xlsx` | GitHub `haoyunlianlian744/Wrought-Aluminum-Alloys` | 524 / 320 | Augmentation |
+| `data/bhat2023_al_data.csv` | Bhat, Barnard & Birbilis 2023 ([Mendeley, CC-BY-4.0](https://doi.org/10.17632/b6br4yk6r3.1)) | 1154 | Clean-licence corroborator |
 
-> ⚠️ The raw third-party datasets are **not redistributed** in this repo (no redistribution
-> licence). Download them with the commands in `data/DATA_SOURCES.md`.
+Provenance & licences: [`data/DATA_SOURCES.md`](data/DATA_SOURCES.md). **Raw third-party datasets
+are not redistributed here** (no redistribution licence) — download them with the commands there.
 
-## 2. Features (65 total)
+## 2. Features
 
-- **18 alloying elements** (wt %): Si, Fe, Cu, Mn, Mg, Cr, Zn, V, Ti, Zr, Li, Ni, Ga, Bi, Pb, B, Be, Sc (Al = balance).
-- **3 numeric heat-treatment** variables: solution/annealing temperature, ageing temperature, ageing time.
-- **3 physics descriptors** computed from atomic fractions: valence-electron concentration (**VEC**),
-  mean Pauling **electronegativity**, and atomic-**size-mismatch δ**.
-- **One-hot processing**: manufacturing method, quench medium, strain-hardening, ageing type, post-treatment, product shape.
+- **Element wt %** (20 elements; Al = balance).
+- **3 numeric heat-treatment** variables: solution temperature, ageing temperature, ageing time.
+- **3 physics descriptors** from atomic fractions: valence-electron concentration (**VEC**), mean
+  Pauling **electronegativity**, atomic **size-mismatch δ**.
 
-## 3. Forward model — how we trained it
+## 3. Forward model
 
-- **Algorithm:** `XGBoost` regressor — `n_estimators=600, max_depth=5, learning_rate=0.03,
-  subsample=0.8, colsample_bytree=0.8, min_child_weight=3`. Separate models for UTS, YTS, EL.
-- **Uncertainty:** a **12-member bootstrap ensemble** per target. The ensemble **mean** is the
-  prediction; the **standard deviation** is the model-confidence estimate used in inverse design.
-- Script: [`forward_model.py`](forward_model.py) → saves `models.pkl`.
+`XGBoost` (`n_estimators=600, max_depth=5, lr=0.03, subsample=0.8, colsample_bytree=0.8,
+min_child_weight=3`); separate models for UTS, YS, EL. A **12-member bootstrap ensemble** per
+target gives the prediction (mean) and uncertainty (std). Scripts: [`build_candidates.py`](build_candidates.py)
+(pooled, final) and [`forward_model.py`](forward_model.py) (single-dataset baseline).
 
-## 4. Performance — how we tested it
+## 4. Performance — grouped cross-validation (honest test on unseen chemistries)
 
-Two cross-validation schemes, because they tell very different stories:
+| Target | All alloys | **7xxx subset** |
+|--------|:----------:|:---------------:|
+| **UTS** | R² 0.84 · MAE 43 MPa | **R² 0.73 · MAE 43 MPa** |
+| **YS**  | R² 0.77 · MAE 55 MPa | **R² 0.73 · MAE 50 MPa** |
+| **EL**  | R² 0.30 | not reliable |
 
-| Target | Random 5-fold *(leaky)* | **Grouped 5-fold** *(unseen alloys — the honest test)* | 7xxx subset (grouped) |
-|--------|:----------------------:|:-----------------------------------------------------:|:---------------------:|
-| **UTS** | R² 0.965 · MAE 18 MPa | **R² 0.755 · MAE 58 MPa** | R² 0.33 · MAE 70 MPa |
-| **YTS** | R² 0.944 · MAE 22 MPa | **R² 0.715 · MAE 58 MPa** | R² 0.57 · MAE 72 MPa |
-| **EL**  | R² 0.730 · MAE 2.5 %  | **R² ≈ 0 (not predictable)** | negative |
+Models are validated by **grouping on chemistry** (no alloy in both train and test), so these are
+generalisation numbers, not memorisation. Pooling the four datasets lifted 7xxx UTS R² from 0.33
+(single dataset) to **0.73**. **Elongation remains unpredictable** and is *not* used as an
+optimisation objective.
 
-**Why grouped CV matters:** random splits let the model memorise alloys that appear in both
-train and test, inflating R² to ≈0.96. Grouping by alloy (62 distinct groups) forces prediction
-on *genuinely unseen* chemistries — the real discovery setting — where UTS R² is ≈0.76 and the
-honest error band is **±70 MPa on 7xxx**. **Elongation is not reliably predictable**, so it is
-reported but **not** used as an optimisation objective.
+## 5. Inverse design — how the candidates were found
 
-**Top feature importances (UTS):** water-quench, ageing time, Cu, size-mismatch δ, ageing type,
-Zn, Mg — all metallurgically expected 7xxx strengthening levers, a sanity check that the model
-learned physics rather than noise.
+[`build_candidates.py`](build_candidates.py) runs an **in-distribution virtual screen**: 150 000
+random cheap-element 7xxx compositions × ageing schedules within data-backed bounds
+(Zn 4–9, Mg 1–3, Cu 0–2.6, Mn 0–0.4, Cr 0–0.3 wt %; Tsol 460–490 °C, Tage 100–155 °C,
+tage 8–48 h), each scored by the ensemble. Candidates are then filtered and ranked:
 
-## 5. Inverse design — how we found new compositions
+- **In-distribution only:** novelty ≤ 1.32 (the 90th-percentile nearest-neighbour gap *within*
+  the real 7xxx data) — so the optimiser cannot exploit out-of-distribution corners where the
+  model is unreliable.
+- **Manufacturability:** Zn + Mg + Cu ≤ 12 wt % (limits hot-tearing / quench sensitivity).
+- **Rank:** confidence-penalised strength `score = UTS − 1·σ`, then a diversity filter (≥ 0.5 wt %
+  apart) selects 5 distinct winners.
 
-[`inverse_design_cheap.py`](inverse_design_cheap.py) — **NSGA-II** multi-objective genetic
-algorithm (`pymoo`, population 150, 80 generations) searching over composition + ageing schedule:
+*(An NSGA-II multi-objective variant — strength × novelty × confidence — is also included in
+[`inverse_design_cheap.py`](inverse_design_cheap.py) for exploring more novel chemistries.)*
 
-- **Search variables (cheap elements only):** Zn [4–9.5], Mg [1–3], Cu [0–2.6], Mn [0–0.4],
-  Cr [0–0.28] wt %; solution T [460–490 °C], ageing T [100–150 °C], ageing time [8–48 h].
-  Fe ≤ 0.15, Si ≤ 0.10 (impurities); **Sc, Zr, Ti, V, Li, Ni, Be … all fixed to 0**.
-- **Fixed processing** (what the lab can do): extruded, water-quenched, artificially aged.
-- **Three objectives:** maximise predicted **UTS**, maximise **novelty**, minimise prediction
-  **uncertainty**.
-- **Manufacturability constraint:** Zn + Mg + Cu ≤ 12 wt % (limits hot-tearing / quench sensitivity).
+## 6. Novelty
 
-## 6. Novelty — how it is defined
+**Novelty = minimum standardised distance** from a candidate to every real 7xxx alloy, in the
+`[Zn, Mg, Cu, Mn, Cr + heat-treatment]` space (z-scored). Low novelty (≈ 1) = a trustworthy tweak
+of a known alloy; high novelty = a riskier extrapolation. The final candidates are deliberately
+kept **in-distribution** (≤ 1.32) for reliability before experimental validation.
 
-For each candidate, **novelty = the minimum standardised Euclidean distance** to *every* training
-7xxx alloy, measured in the `[Zn, Mg, Cu, Mn, Cr + 3 heat-treatment]` space (each axis z-scored by
-the training-7xxx mean and standard deviation). Novelty ≈ 1.5–2 means "an optimised tweak of a
-known alloy" (high confidence); novelty ≳ 3.5 means "a genuinely different chemistry" (more
-upside, more risk). This is the same idea used by Hu et al. 2024 to push designs beyond the
-existing data.
+## 7. Limitations (read before casting)
 
-## 7. Candidate selection
+1. **Predictions are hypotheses** — trust the **±43 MPa** band, not the tight ensemble spread.
+2. **Model is blind to microstructure** — grain size, quench rate and **multi-stage ageing
+   (RRA/T74)** are not represented; those are the main levers for pushing cheap 7xxx past ≈640 MPa.
+3. **Castability not yet checked** — that is the Thermo-Calc step (Scheil freezing range).
+4. **The model rediscovers known 7xxx** rather than beating it — the cheap-element optimum is
+   essentially a tuned 7075/7050/7150 at ≈7055-class strength. Genuine gains beyond this likely
+   come from **processing**, not composition.
 
-From the 150-point Pareto front: **KMeans (k = 5)** on the standardised design variables groups the
-front into 5 distinct families; within each family the member with the highest
-**confidence-penalised score** `score = UTS_mean − 0.5 × UTS_std` is chosen. This yields **5
-diverse** candidates rather than 5 near-duplicates of one corner.
+## 8. Next steps
 
-## 8. Limitations (read before casting)
-
-1. **Predictions are hypotheses, not measurements** — trust the ±70 MPa band, not the tight
-   ensemble spread.
-2. **No grain-refiner (Zr/Ti) in the cheap set** — grain-structure control now depends on Mn/Cr
-   dispersoids **and your deformation step** (extrusion/rolling); the composition→strength model
-   does not see grain size directly, so absolute strength may be slightly optimistic for an
-   un-refined ingot.
-3. **Castability is not yet checked** — that is the job of the Thermo-Calc step (candidates 1 & 5
-   sit near the Zn+Mg+Cu ceiling and are the riskiest to pour soundly).
-4. **7xxx data is thin** (153 alloys, a few dozen distinct chemistries) — pooling the augmentation
-   sets is the most effective next improvement.
-
-## 9. Next steps
-
-- **Thermo-Calc each candidate:** solvus vs. solution temperature; Scheil freezing range
-  (castability); equilibrium phase fractions at the ageing temperature (confirm η′/MgZn₂).
-- Cut to the 2–3 most castable, **cast & tensile-test**, and feed results back into
-  `forward_model.py` to start the active-learning loop.
+Thermo-Calc each candidate (solvus vs. solution T; Scheil castability; phase fractions at the
+ageing temperature → confirm η′/MgZn₂), cut to the 2–3 most castable, **cast & tensile-test**,
+then feed results back into the model.
 
 ---
 
@@ -168,16 +149,17 @@ diverse** candidates rather than 5 near-duplicates of one corner.
 
 ```
 .
-├── README.md                 # this file
-├── eda.py                    # exploratory data analysis
-├── poc.py                    # feasibility proof on the original (unlinked) dataset
-├── forward_model.py          # train + cross-validate the XGBoost ensemble  → models.pkl
-├── inverse_design.py         # NSGA-II (all elements allowed)
-├── inverse_design_cheap.py   # NSGA-II (cheap common elements only)         → headline result
+├── README.md
+├── build_candidates.py        # ★ pooled model + in-distribution screen → final candidates
+├── forward_model.py           # single-dataset forward model (baseline)
+├── inverse_design.py          # NSGA-II, all elements allowed
+├── inverse_design_cheap.py    # NSGA-II, cheap elements only
+├── eda.py / poc.py            # dataset analysis + feasibility study
 └── data/
-    ├── DATA_SOURCES.md       # dataset provenance, licences, re-download commands
-    ├── candidates_cheap.csv  # ★ 5 cheap-element candidates
-    └── candidates.csv        # rare-element variant (Sc/Zr/Ti allowed)
+    ├── DATA_SOURCES.md        # provenance, licences, re-download commands
+    ├── candidates_final.csv   # ★ 5 best cheap, in-distribution candidates (USE THIS)
+    ├── candidates_cheap.csv   # earlier single-dataset cheap variant
+    └── candidates.csv         # rare-element variant (Sc/Zr/Ti allowed)
 ```
 
 ## Reproduce
@@ -185,23 +167,17 @@ diverse** candidates rather than 5 near-duplicates of one corner.
 ```bash
 pip install pandas numpy scikit-learn xgboost pymoo scipy openpyxl
 # download datasets per data/DATA_SOURCES.md, then:
-python3 forward_model.py        # trains + prints CV metrics, writes models.pkl
-python3 inverse_design_cheap.py # writes data/candidates_cheap.csv
+python3 build_candidates.py     # prints CV metrics, writes data/candidates_final.csv
 ```
-
-## Appendix — rare-element variant
-
-If Sc/Zr/Ti are available, [`data/candidates.csv`](data/candidates.csv) lists the unconstrained
-optima (top UTS ≈ 660 MPa). Generated by [`inverse_design.py`](inverse_design.py).
 
 ## References
 
 - Hu et al. (2024) *Comput. Mater. Sci.* **244**, 113204.
 - Bhat, Barnard & Birbilis (2023) Mendeley Data, DOI 10.17632/b6br4yk6r3.1.
 - Li et al. (2020) *Commun. Mater.* **1**, 73 (ML-discovered 7xxx, UTS 952 MPa).
-- Pfeiffer et al. (2022) *Sci. Data* **9**, 128 (the original composition corpus).
+- Pfeiffer et al. (2022) *Sci. Data* **9**, 128 (original composition corpus).
 
 ---
 
-*Pipeline built with Python (pandas, scikit-learn, XGBoost, pymoo). Predictions are
-computational estimates requiring thermodynamic and experimental validation.*
+*Built with Python (pandas, scikit-learn, XGBoost, pymoo). Predictions are computational
+estimates requiring thermodynamic and experimental validation.*
