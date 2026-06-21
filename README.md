@@ -13,7 +13,7 @@ measured results fed back to retrain the model (active learning).
 
 ## 🔬 Headline result — 5 candidates using only Zn, Mg, Cu, Mn, Cr
 
-Predicted with an XGBoost ensemble; **predictions carry a realistic ±~70 MPa band** (see
+Predicted with an XGBoost ensemble; **predictions carry a realistic ±70 MPa band** (see
 [Performance](#4-performance--how-we-tested-it)). All are predicted above 7075-T6 (≈572 MPa).
 
 | # | Zn | Mg | Cu | Mn | Cr | Heat treatment | Pred. UTS | Pred. YTS | EL % | Novelty | Character |
@@ -27,7 +27,7 @@ Predicted with an XGBoost ensemble; **predictions carry a realistic ±~70 MPa ba
 *Units: wt %; strength in MPa. SHT = solution heat treatment. Full machine-readable output:
 [`data/candidates_cheap.csv`](data/candidates_cheap.csv).*
 
-> A version that **allows** Sc/Zr/Ti reaches ~660 MPa (+25 MPa) — see
+> A version that **allows** Sc/Zr/Ti reaches ≈660 MPa (+25 MPa) — see
 > [`data/candidates.csv`](data/candidates.csv) and [Appendix](#appendix--rare-element-variant).
 > The 25 MPa premium was judged not worth the rare-metal cost/availability.
 
@@ -104,9 +104,9 @@ Two cross-validation schemes, because they tell very different stories:
 | **EL**  | R² 0.730 · MAE 2.5 %  | **R² ≈ 0 (not predictable)** | negative |
 
 **Why grouped CV matters:** random splits let the model memorise alloys that appear in both
-train and test, inflating R² to ~0.96. Grouping by alloy (62 distinct groups) forces prediction
-on *genuinely unseen* chemistries — the real discovery setting — where UTS R² is ~0.76 and the
-honest error band is **±~70 MPa on 7xxx**. **Elongation is not reliably predictable**, so it is
+train and test, inflating R² to ≈0.96. Grouping by alloy (62 distinct groups) forces prediction
+on *genuinely unseen* chemistries — the real discovery setting — where UTS R² is ≈0.76 and the
+honest error band is **±70 MPa on 7xxx**. **Elongation is not reliably predictable**, so it is
 reported but **not** used as an optimisation objective.
 
 **Top feature importances (UTS):** water-quench, ageing time, Cu, size-mismatch δ, ageing type,
@@ -144,7 +144,7 @@ diverse** candidates rather than 5 near-duplicates of one corner.
 
 ## 8. Limitations (read before casting)
 
-1. **Predictions are hypotheses, not measurements** — trust the ±~70 MPa band, not the tight
+1. **Predictions are hypotheses, not measurements** — trust the ±70 MPa band, not the tight
    ensemble spread.
 2. **No grain-refiner (Zr/Ti) in the cheap set** — grain-structure control now depends on Mn/Cr
    dispersoids **and your deformation step** (extrusion/rolling); the composition→strength model
@@ -152,7 +152,7 @@ diverse** candidates rather than 5 near-duplicates of one corner.
    un-refined ingot.
 3. **Castability is not yet checked** — that is the job of the Thermo-Calc step (candidates 1 & 5
    sit near the Zn+Mg+Cu ceiling and are the riskiest to pour soundly).
-4. **7xxx data is thin** (153 alloys, ~few dozen distinct chemistries) — pooling the augmentation
+4. **7xxx data is thin** (153 alloys, a few dozen distinct chemistries) — pooling the augmentation
    sets is the most effective next improvement.
 
 ## 9. Next steps
