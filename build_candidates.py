@@ -5,6 +5,7 @@ warnings.filterwarnings("ignore")
 from sklearn.model_selection import GroupKFold, cross_val_predict
 from sklearn.metrics import r2_score, mean_absolute_error
 from scipy.spatial.distance import cdist
+from sklearn.cluster import KMeans
 import xgboost as xgb
 D="/mnt/sdb/arafat/Al_alloy_design/"
 EL=['Si','Fe','Cu','Mn','Mg','Cr','Zn','V','Ti','Zr','Li','Ni','Be','Sc','Ag','B','Bi','Ga','Pb','Sn']
@@ -62,35 +63,33 @@ def predict(d):
         P=np.column_stack([m.predict(Xf) for m in ENS[t]]); o[t]=P.mean(1); o[t+' s']=P.std(1)
     return o
 
-# in-distribution 7xxx reference + novelty threshold (P90 of real data's own nearest-neighbour gaps)
+# ---- inverse design: find NEW alloys (novelty up to CAP) with good (not max) strength ----
 DV=['Zn','Mg','Cu','Mn','Cr']+HT
 is7=(pool['Zn']>=3)&(pool['Zn']>pool['Cu'])&(pool['Zn']>pool['Si'])&(pool['Zn']>pool['Mg'])
 ref=pool.loc[is7,DV].values; MU,SD=ref.mean(0),ref.std(0)+1e-9; RN=(ref-MU)/SD
-dd=cdist(RN,RN); np.fill_diagonal(dd,np.inf); THRESH=np.percentile(dd.min(1),90)
-print(f"\n7xxx reference alloys: {is7.sum()} | in-distribution novelty threshold: {THRESH:.2f}")
+CAP=1.5      # novelty ceiling (~P95 of real-data gaps): genuinely new but still reliable
+FLOOR=520    # UTS floor (MPa): "somewhat good" strength; peak strength NOT required
 
-# virtual screen: 150k cheap-element samples within data-backed 7xxx bounds
-rng=np.random.RandomState(7); N=150000
-B={'Zn':(4,9.0),'Mg':(1,3.0),'Cu':(0,2.6),'Mn':(0,0.4),'Cr':(0,0.30),'Tsol':(460,490),'Tage':(100,155),'tage':(8,48)}
+# wider, still-realistic 7xxx search bounds
+rng=np.random.RandomState(7); N=200000
+B={'Zn':(4,9.5),'Mg':(1,3.2),'Cu':(0,2.8),'Mn':(0,0.5),'Cr':(0,0.35),'Tsol':(455,495),'Tage':(95,160),'tage':(6,60)}
 C=pd.DataFrame({k:rng.uniform(*B[k],N) for k in B}); C['Fe']=0.15; C['Si']=0.10
 for e in EL:
     if e not in C: C[e]=0.0
-pr=predict(C);
+pr=predict(C)
 for k,v in pr.items(): C[k]=v
 C['novelty']=cdist((C[DV].values-MU)/SD,RN).min(1)
-C['score']=C['UTS']-1.0*C['UTS s']           # confidence-penalised strength (feasible-first)
-sel=C[(C['novelty']<=THRESH)&(C['Zn']+C['Mg']+C['Cu']<=12)&(C['EL']>=8)].sort_values('score',ascending=False)
-print(f"in-distribution feasible samples: {len(sel)}")
-chosen=[]
-for _,r in sel.iterrows():
-    if all(abs(r[['Zn','Mg','Cu']]-c[['Zn','Mg','Cu']]).max()>0.5 for c in chosen): chosen.append(r)
-    if len(chosen)==5: break
-out=pd.DataFrame(chosen).reset_index(drop=True)
+sel=C[(C['novelty']<=CAP)&(C['UTS']>=FLOOR)&(C['Zn']+C['Mg']+C['Cu']<=12.5)&(C['EL']>=8)].copy()
+print(f"\n7xxx reference alloys: {is7.sum()} | novelty cap {CAP} | UTS floor {FLOOR} MPa | passing: {len(sel)}")
+# 5 DISTINCT, as-NEW-as-possible alloys: cluster the design space, take max-novelty member per cluster
+sel['cl']=KMeans(5,n_init=10,random_state=0).fit_predict((sel[DV].values-MU)/SD)
+out=sel.sort_values('novelty',ascending=False).groupby('cl',as_index=False).first().sort_values('UTS',ascending=False).reset_index(drop=True)
+out['score']=out['UTS']-out['UTS s']
 out['Al']=(100-out[EL].sum(1)).round(2)
 view=['Al','Zn','Mg','Cu','Mn','Cr','Fe','Si','Tsol','Tage','tage','UTS','UTS s','YS','YS s','EL','novelty']
 for c in view: out[c]=out[c].round(2)
 pd.set_option("display.width",200)
-print("\n=== 5 BEST CHEAP, IN-DISTRIBUTION 7xxx CANDIDATES (pre-Thermo-Calc) ===")
+print("\n=== 5 NEW (novelty-prioritised) CHEAP 7xxx CANDIDATES (pre-Thermo-Calc) ===")
 print(out[view].to_string(index=False))
 print("\nBenchmarks: 7075-T6 ~572, 7050-T6 ~552, 7055 ~640 MPa.")
 out[view+['score']].to_csv(D+"data/candidates_final.csv",index=False)
