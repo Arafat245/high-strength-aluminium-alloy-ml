@@ -66,7 +66,13 @@ for k,v in pr.items(): PF[k]=v
 PF['novelty']=novelty(PF); PF['score']=PF['UTS_mean']-0.5*PF['UTS_std']
 PF['cl']=KMeans(5,n_init=10,random_state=0).fit_predict((PF[FREE+HT].values-MU)/SD)
 out=PF.sort_values('score',ascending=False).groupby('cl',as_index=False).first().sort_values('UTS_mean',ascending=False)
-show=['Zn','Mg','Cu','Mn','Cr','S/A Temp','Ageing Temp','Ageing Time',
+# add Al as balance, drop all-zero element columns and the internal cluster id
+out['Al']=(100-out[COMP].sum(axis=1)).round(3)
+zero_cols=[c for c in COMP if (out[c].abs()<1e-9).all()]
+front=[c for c in ['Al','Zn','Mg','Cu','Mn','Cr','Fe','Si'] if c in out.columns and c not in zero_cols]
+rest=[c for c in out.columns if c not in front+zero_cols+['cl']]
+out=out[front+rest]
+show=['Al','Zn','Mg','Cu','Mn','Cr','S/A Temp','Ageing Temp','Ageing Time',
       'UTS_mean','UTS_std','YTS_mean','YTS_std','EL_mean','novelty']
 pd.set_option("display.width",200)
 print("Design space: Zn,Mg,Cu,Mn,Cr only (Fe<=0.15, Si<=0.10; NO Sc/Zr/Ti/V/Li/Ni/Be).")
