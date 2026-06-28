@@ -3,6 +3,7 @@ paper/
 Dataset/
 data/*.xlsx
 !data/candidates_final.xlsx
+!data/candidates_aldemo.xlsx
 data/bhat2023_al_data.csv
 
 # Internal / derived / binary (reproducible from scripts)
