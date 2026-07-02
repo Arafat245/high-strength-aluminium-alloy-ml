@@ -11,7 +11,6 @@
 | `Si` | Silicon — in ALDEMO; kept low (minor, aids castability) | wt % |
 | `Sc` | Scandium — forms Al₃Sc / Al₃(Sc,Zr) L1₂ dispersoids → grain refinement + thermal stability + strength | wt % |
 | `Zr` | Zirconium — forms Al₃Zr / Al₃(Sc,Zr); **cheap (≈$30/kg)**, anti-recrystallisation | wt % |
-| `Fe` | Iron — impurity, fixed 0.15 | wt % |
 | `Tsol` | Solutionising temperature (dissolve Cu, then water-quench) | °C |
 | `Tage` | Ageing temperature — low-T age for θ′ (Al₃(Sc,Zr) forms earlier, during casting/homogenisation) | °C |
 | `tage` | Ageing time at `Tage` | hours |

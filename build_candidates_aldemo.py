@@ -99,9 +99,9 @@ rng=np.random.RandomState(7); N=300000
 # dispersoids, so the strength model is conservative about them (safe direction).
 B={'Cu':(2.0,6.5),'Si':(0.0,0.8),'Sc':(0.05,0.40),'Zr':(0.05,0.25),
    'Tsol':(520,545),'Tage':(150,200),'tage':(8,48)}
-C=pd.DataFrame({k:rng.uniform(*B[k],N) for k in B}); C['Fe']=0.15
+C=pd.DataFrame({k:rng.uniform(*B[k],N) for k in B})
 for e in EL:
-    if e not in C: C[e]=0.0          # Zn=Mg=Mn=Cr=...=0  (outside ALDEMO)
+    if e not in C: C[e]=0.0          # Zn=Mg=Mn=Cr=Fe=...=0  (ALDEMO demo DB has ONLY Al,Cu,Si,Sc,Zr)
 pr=predict(C)
 for k,v in pr.items(): C[k]=v
 C['novelty']=cdist((C[DV].values-MU)/SD,RN).min(1)
@@ -121,7 +121,7 @@ out['Al']=(100-out[EL].sum(1)).round(2)
 nnidx=cdist((out[DV].values-MU)/SD,RN).argmin(1)
 near=pool.loc[aldcu].reset_index(drop=True).iloc[nnidx]
 out['near_real']=[f"Cu{r.Cu:.1f}/Sc{r.Sc:.2f}/Zr{r.Zr:.2f} (UTS{r.UTS:.0f})" for _,r in near.iterrows()]
-view=['Al','Cu','Si','Sc','Zr','Fe','Tsol','Tage','tage','UTS','UTS s','YS','YS s','EL','novelty']
+view=['Al','Cu','Si','Sc','Zr','Tsol','Tage','tage','UTS','UTS s','YS','YS s','EL','novelty']
 for c in view: out[c]=out[c].round(2)
 pd.set_option("display.width",220)
 print("\n=== 5 NEW ALDEMO-VALIDATABLE (Al-Cu-Si-Sc-Zr) CANDIDATES ===")

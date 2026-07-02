@@ -14,7 +14,6 @@ readme=[
  ("Si","Silicon - in ALDEMO; minor here (improves castability / fluidity). Kept low for wrought","wt %"),
  ("Sc","Scandium - forms Al3Sc / Al3(Sc,Zr) L1-2 dispersoids: grain refinement + thermal stability + strength","wt %"),
  ("Zr","Zirconium - forms Al3Zr / Al3(Sc,Zr); cheap (~$30/kg), routine; anti-recrystallisation","wt %"),
- ("Fe","Iron - impurity, fixed at 0.15 (typical foundry level)","wt %"),
  ("Tsol","Solution(ising) temperature - hold here to dissolve Cu into solid solution, then water-quench","deg C"),
  ("Tage","Ageing temperature - low-T age to precipitate theta-prime (Al2Cu). Al3(Sc,Zr) forms earlier (cast/homogenise)","deg C"),
  ("tage","Ageing time - duration held at Tage","hours"),

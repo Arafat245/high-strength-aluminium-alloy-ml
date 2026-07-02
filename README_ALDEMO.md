@@ -29,14 +29,14 @@ From the **same 4-dataset pooled model** (1124 alloys), screened over the Al-Cu-
 
 | # | Al | Cu | Si | Sc | Zr | Heat treatment | UTS | YS | EL % | Novelty | Character |
 |---|----|----|----|----|----|----------------|:---:|:--:|:----:|:-------:|-----------|
-| 1 | 94.3 | 5.0 | 0.19 | 0.16 | 0.23 | SHT 521 °C → WQ → age 152 °C / 43 h | **454** | 356 | 11 | 1.92 | Balanced Sc+Zr — most novel |
-| 2 | 93.5 | 6.0 | 0.04 | 0.14 | 0.18 | SHT 521 °C → WQ → age 151 °C / 33 h | 452 | 356 | 11 | 1.63 | High-Cu |
-| 3 | 94.2 | 5.3 | 0.01 | 0.10 | 0.24 | SHT 522 °C → WQ → age 151 °C / 35 h | 451 | **361** | 11 | 1.16 | High-Zr, lean-Sc |
-| 4 | 94.5 | 4.8 | 0.17 | **0.33** | 0.11 | SHT 523 °C → WQ → age 151 °C / 31 h | 448 | 357 | 11 | 1.80 | High-Sc — max Al₃Sc |
-| 5 | 93.7 | 5.8 | 0.08 | 0.10 | 0.20 | SHT 521 °C → WQ → age 151 °C / 24 h | 446 | 353 | 11 | 1.09 | Closest to proven Al-Cu-Zr — **cheapest** |
+| 1 | 94.4 | 5.1 | 0.21 | 0.12 | 0.16 | SHT 521 °C → WQ → age 152 °C / 33 h | **456** | 355 | 12 | 1.46 | Strongest — balanced |
+| 2 | 94.1 | 5.4 | 0.14 | 0.17 | 0.21 | SHT 520 °C → WQ → age 165 °C / 24 h | 448 | **363** | 12 | 1.98 | Sc+Zr, warm age — most novel |
+| 3 | 94.4 | 5.2 | 0.18 | 0.09 | 0.19 | SHT 521 °C → WQ → age 150 °C / 23 h | 446 | 355 | 12 | 1.13 | Lean-Sc |
+| 4 | 93.9 | 5.5 | 0.18 | **0.36** | 0.07 | SHT 521 °C → WQ → age 175 °C / 33 h | 442 | 323 | 12 | 1.91 | Max Al₃Sc — high-T age |
+| 5 | 93.7 | 6.0 | 0.01 | 0.08 | 0.25 | SHT 524 °C → WQ → age 151 °C / 15 h | 436 | 350 | 11 | 0.98 | High-Cu/Zr — cheapest Sc |
 
-*Units: wt %; strength MPa. SHT = solution heat treatment; WQ = water quench. Fe = 0.15 fixed
-impurity. Benchmarks (ALDEMO-castable): 2219-T87 ≈ 475 MPa; real Al-Cu-Zr in our data up to 510.*
+*Units: wt %; strength MPa. SHT = solution heat treatment; WQ = water quench. **No Fe** — the five
+ALDEMO elements only. Benchmarks (ALDEMO-castable): 2219-T87 ≈ 475 MPa; real Al-Cu-Zr in our data up to 510.*
 
 > **Honest framing.** Predictions here are **conservative** — the model's strength ceiling in this
 > corner is only ≈456 MPa, yet real Al-Cu-Zr already reaches 475–510, so true strength with good
@@ -55,7 +55,7 @@ flowchart TD
     D --> E{"Validation (grouped CV)"}
     E -->|"all alloys"| E1["UTS R²=0.84"]
     E -->|"ALDEMO-compatible subset"| E2["UTS R²=0.85, MAE 35 MPa (n=110)"]
-    D --> F["Inverse design<br/>screen 300k Al-Cu-Si-Sc-Zr samples<br/>(Sc>=0.05, Zr>=0.05 FORCED; Zn=Mg=Mn=Cr=0)"]
+    D --> F["Inverse design<br/>screen 300k Al-Cu-Si-Sc-Zr samples<br/>(Sc>=0.05, Zr>=0.05 FORCED; Zn=Mg=Mn=Cr=Fe=0)"]
     F --> G["Filters: novelty <= 2.0 · UTS >= 430 MPa · Cu+Si <= 7"]
     G --> H["Cluster (KMeans k=5) for diversity<br/>take strongest reliable member per cluster"]
     H --> J["★ 5 new Al-Cu-Si-Sc-Zr candidates"]
@@ -94,7 +94,7 @@ Al-Cu and Al-Cu-Zr points but few Al-Cu-**Sc**-Zr, so the model is conservative 
 [`build_candidates_aldemo.py`](build_candidates_aldemo.py) virtual-screens **300 000** random
 Al-Cu-Si-Sc-Zr compositions × ageing schedules within data-backed bounds
 (Cu 2–6.5, Si 0–0.8, **Sc 0.05–0.4, Zr 0.05–0.25** — both forced present; Tsol 520–545 °C,
-Tage 150–200 °C, tage 8–48 h; Zn = Mg = Mn = Cr = 0), each scored by the ensemble, then:
+Tage 150–200 °C, tage 8–48 h; Zn = Mg = Mn = Cr = Fe = 0), each scored by the ensemble, then:
 
 - **Strength floor** `UTS ≥ 430 MPa` (good for an ALDEMO-castable Al-Cu alloy).
 - **Reliability cap** `novelty ≤ 2.0`.
